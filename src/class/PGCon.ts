@@ -18,7 +18,7 @@ export default abstract class PGCon
   db: PGDBType | null;
 
   protected constructor(
-    module: ICoreKernelModule<CoreKernel<any>, any, any, any, any>,
+    module: ICoreKernelModule<any, any, any, any, any>,
     dbversion: string
   ) {
     super(dbversion, module.getName(), module);
