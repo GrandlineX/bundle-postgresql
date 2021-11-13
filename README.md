@@ -27,5 +27,5 @@ GrandLineX is an out-of-the-box server framework.
 
 
 ## Documentation
-- [Documentation](https://grandlinex.github.io/bundle-postgress/)
+- [Documentation](https://grandlinex.github.io/bundle-postgresql/)
 - [GrandLineX Docs](https://grandlinex.github.io/docs/)
