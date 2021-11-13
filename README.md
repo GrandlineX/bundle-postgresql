@@ -7,7 +7,7 @@
 GrandLineX is an out-of-the-box server framework.
 
 
-[![GitHub](https://badge.fury.io/gh/grandlinex%2Fbundle-sqlight.svg)](https://github.com/GrandlineX/bundle-postgresql)
+[![GitHub](https://badge.fury.io/gh/grandlinex%2Fbundle-postgresql.svg)](https://github.com/GrandlineX/bundle-postgresql)
 [![NPM](https://img.shields.io/static/v1?label=NPM&message=Package&color=red&logo=NPM)](https://www.npmjs.com/package/@grandlinex/bundle-postgresql)
 ![TS](https://img.shields.io/static/v1?label=Language&message=TypeScript&color=blue&logo=TypeScript)
 
@@ -24,7 +24,8 @@ GrandLineX is an out-of-the-box server framework.
 ![Vulnerabilities](https://pop.echo4.eu/api/project_badges/measure?project=GrandLineX-Bundle-Postgresql&metric=vulnerabilities)
 ![Code Smells](https://pop.echo4.eu/api/project_badges/measure?project=GrandLineX-Bundle-Postgresql&metric=code_smells)
 
- 
 
-## Documentation 
-- [Docs](https://grandlinex.github.io/docs/)
+
+## Documentation
+- [Documentation](https://grandlinex.github.io/bundle-postgress/)
+- [GrandLineX Docs](https://grandlinex.github.io/docs/)
