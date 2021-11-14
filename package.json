@@ -1,6 +1,6 @@
 {
   "name": "@grandlinex/bundle-postgresql",
-  "version": "0.12.7",
+  "version": "0.13.0",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
