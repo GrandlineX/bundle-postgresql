@@ -1,4 +1,4 @@
-import CoreKernel, {
+import {
   ConfigType,
   CoreDBCon,
   CoreEntity,
@@ -86,9 +86,35 @@ export default abstract class PGCon
     return query[0] !== null;
   }
 
-  async getEntityList<E extends CoreEntity>(className: string): Promise<E[]> {
+  async getEntityList<E extends CoreEntity>(
+    className: string,
+    search: {
+      [P in keyof E]: E[P];
+    }
+  ): Promise<E[]> {
+    let searchQ = '';
+    const param: any[] = [];
+    if (search) {
+      const keys: (keyof E)[] = Object.keys(search) as (keyof E)[];
+      if (keys.length > 0) {
+        const filter: string[] = [];
+        let count = 1;
+        for (const key of keys) {
+          if (search[key] !== undefined) {
+            filter.push(`${key} = $${count++}`);
+            param.push(search[key]);
+          }
+        }
+        if (filter.length > 0) {
+          searchQ = ` WHERE ${filter.join(' AND ')}`;
+        }
+      }
+    }
     const query = await this.execScripts([
-      { exec: `SELECT * FROM ${this.schemaName}.${className};`, param: [] },
+      {
+        exec: `SELECT * FROM ${this.schemaName}.${className}${searchQ};`,
+        param,
+      },
     ]);
     return query[0]?.rows || [];
   }
@@ -106,37 +132,31 @@ export default abstract class PGCon
   }
 
   transformEntityKeys<E extends CoreEntity>(entity: E): string {
-    const clone: any = entity;
-    const keys = Object.keys(entity);
+    const keys: (keyof E)[] = Object.keys(entity) as (keyof E)[];
     const out: string[] = [];
-    let type:
-      | 'string'
-      | 'number'
-      | 'bigint'
-      | 'boolean'
-      | 'symbol'
-      | 'undefined'
-      | 'object'
-      | 'function';
+
     keys.forEach((key) => {
-      switch (key) {
-        case 'e_id':
-          out.push(`e_id SERIAL PRIMARY KEY`);
-          break;
-        default:
-          type = typeof clone[key];
-          switch (type) {
-            case 'bigint':
-            case 'number':
-              out.push(`${key} INT`);
-              break;
-            case 'string':
+      if (key === 'e_id') {
+        out.push(`e_id SERIAL PRIMARY KEY`);
+      } else {
+        const type = typeof entity[key];
+        const dat = entity[key] as any;
+        switch (type) {
+          case 'bigint':
+          case 'number':
+            out.push(`${key} INT`);
+            break;
+          case 'string':
+            out.push(`${key} TEXT`);
+            break;
+          case 'object':
+            if (dat instanceof Date) {
               out.push(`${key} TEXT`);
-              break;
-            default:
-              break;
-          }
-          break;
+            }
+            break;
+          default:
+            break;
+        }
       }
     });
 
