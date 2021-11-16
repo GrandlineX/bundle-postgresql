@@ -105,14 +105,6 @@ describe('TestDatabase', () => {
        expect((await wrapper.getObjList()).length).toBe(2)
      }
    });
-   test('update', async () => {
-     expect(wrapper).not.toBeUndefined()
-     expect(entity.e_id).not.toBeNull()
-     if (wrapper){
-       expect((await wrapper.updateObject(entity))).not.toBeNull()
-       expect((await wrapper.getObjList()).length).toBe(2)
-     }
-   });
    test('get by id', async () => {
      expect(wrapper).not.toBeUndefined()
      expect(entity.e_id).not.toBeNull()
@@ -170,6 +162,44 @@ describe('TestDatabase', () => {
        expect((await wrapper.getObjList({
          e_version:2
        }))).toHaveLength(0);
+     }
+   });
+
+   test('find entity', async () => {
+     expect(wrapper).not.toBeUndefined()
+     if (wrapper){
+       expect((await wrapper.findObj({
+         e_version:0
+       }))).not.toBeNull();
+     }
+   });
+   test('find entity no result', async () => {
+     expect(wrapper).not.toBeUndefined()
+     if (wrapper){
+       expect((await wrapper.findObj({
+         e_version:2
+       }))).toBeNull();
+     }
+   });
+   test('find entity by id', async () => {
+     expect(wrapper).not.toBeUndefined()
+     if (wrapper){
+       expect((await wrapper.findObj({
+         e_id: entity.e_id,
+       }))).not.toBeNull();
+     }
+   });
+
+   test('update', async () => {
+     expect(wrapper).not.toBeUndefined()
+     expect(entity.e_id).not.toBeNull()
+     if (wrapper){
+       expect(entity.name).toBe("Bob")
+       entity.name="Bobi";
+       const update=await wrapper.updateObject(entity);
+       expect(update).not.toBeNull()
+       expect(update?.name).toBe("Bobi")
+       expect((await wrapper.getObjList()).length).toBe(2)
      }
    });
    test('delete', async () => {

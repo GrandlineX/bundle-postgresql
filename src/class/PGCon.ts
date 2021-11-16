@@ -11,6 +11,28 @@ import { Client, QueryResult } from 'pg';
 
 type PGDBType = Client;
 
+function buildSearchQ<E>(
+  search: { [P in keyof E]?: E[P] },
+  param: any[],
+  searchQ: string
+) {
+  let temp = searchQ;
+  const keys: (keyof E)[] = Object.keys(search) as (keyof E)[];
+  if (keys.length > 0) {
+    const filter: string[] = [];
+    let count = 1;
+    for (const key of keys) {
+      if (search[key] !== undefined) {
+        filter.push(`${key} = $${count++}`);
+        param.push(search[key]);
+      }
+    }
+    if (filter.length > 0) {
+      temp = ` WHERE ${filter.join(' AND ')}`;
+    }
+  }
+  return temp;
+}
 export default abstract class PGCon
   extends CoreDBCon<PGDBType, QueryResult | null>
   implements IDataBase<PGDBType, QueryResult | null>
@@ -26,7 +48,10 @@ export default abstract class PGCon
     this.db = null;
   }
 
-  async createEntity<E extends CoreEntity>(entity: E): Promise<E | null> {
+  async createEntity<E extends CoreEntity>(
+    className: string,
+    entity: E
+  ): Promise<E | null> {
     const clone: any = entity;
     const keys = Object.keys(entity);
     const param: any[] = [];
@@ -44,9 +69,9 @@ export default abstract class PGCon
     });
     const result = await this.execScripts([
       {
-        exec: `INSERT INTO ${this.schemaName}.${
-          entity.constructor.name
-        }(${newKeys.join(', ')}) VALUES (${vals.join(', ')}) returning e_id`,
+        exec: `INSERT INTO ${this.schemaName}.${className}(${newKeys.join(
+          ', '
+        )}) VALUES (${vals.join(', ')}) returning e_id`,
         param,
       },
     ]);
@@ -54,11 +79,34 @@ export default abstract class PGCon
     return clone;
   }
 
-  async updateEntity<E extends CoreEntity>(entity: E): Promise<E | null> {
+  async updateEntity<E extends CoreEntity>(
+    className: string,
+    entity: E
+  ): Promise<E | null> {
     if (entity.e_id) {
-      await this.deleteEntityById(entity.constructor.name, entity.e_id);
-      await this.createEntity(entity);
-      return entity;
+      const clone: any = entity;
+      const keys = Object.keys(entity);
+      const param: any[] = [];
+      const vals: string[] = [];
+      let index = 1;
+      keys.forEach((key) => {
+        if (key === 'e_id') {
+          return;
+        }
+        param.push(clone[key]);
+        vals.push(`${key}=$${index}`);
+        index++;
+      });
+      const result = await this.execScripts([
+        {
+          exec: `UPDATE ${this.schemaName}.${className} SET ${vals.join(
+            ', '
+          )} WHERE e_id=${entity.e_id};`,
+          param,
+        },
+      ]);
+
+      return result[0] ? clone : null;
     }
     return null;
   }
@@ -86,6 +134,24 @@ export default abstract class PGCon
     return query[0] !== null;
   }
 
+  async findEntity<E extends CoreEntity>(
+    className: string,
+    search: { [P in keyof E]?: E[P] | undefined }
+  ): Promise<E | null> {
+    let searchQ = '';
+    const param: any[] = [];
+
+    searchQ = buildSearchQ<E>(search, param, searchQ);
+
+    const query = await this.execScripts([
+      {
+        exec: `SELECT * FROM ${this.schemaName}.${className}${searchQ};`,
+        param,
+      },
+    ]);
+    return query[0]?.rows[0] || null;
+  }
+
   async getEntityList<E extends CoreEntity>(
     className: string,
     search: {
@@ -95,20 +161,7 @@ export default abstract class PGCon
     let searchQ = '';
     const param: any[] = [];
     if (search) {
-      const keys: (keyof E)[] = Object.keys(search) as (keyof E)[];
-      if (keys.length > 0) {
-        const filter: string[] = [];
-        let count = 1;
-        for (const key of keys) {
-          if (search[key] !== undefined) {
-            filter.push(`${key} = $${count++}`);
-            param.push(search[key]);
-          }
-        }
-        if (filter.length > 0) {
-          searchQ = ` WHERE ${filter.join(' AND ')}`;
-        }
-      }
+      searchQ = buildSearchQ<E>(search, param, searchQ);
     }
     const query = await this.execScripts([
       {
@@ -119,12 +172,15 @@ export default abstract class PGCon
     return query[0]?.rows || [];
   }
 
-  async initEntity<E extends CoreEntity>(entity: E): Promise<boolean> {
+  async initEntity<E extends CoreEntity>(
+    className: string,
+    entity: E
+  ): Promise<boolean> {
     await this.execScripts([
       {
-        exec: `CREATE TABLE ${this.schemaName}.${
-          entity.constructor.name
-        }(${this.transformEntityKeys<E>(entity)});`,
+        exec: `CREATE TABLE ${
+          this.schemaName
+        }.${className}(${this.transformEntityKeys<E>(entity)});`,
         param: [],
       },
     ]);
