@@ -2,37 +2,24 @@ import {
   ConfigType,
   CoreDBCon,
   CoreEntity,
+  EntityConfig,
+  getColumnMeta,
   ICoreKernelModule,
   IDataBase,
 } from '@grandlinex/core';
 import { RawQuery } from '@grandlinex/core/dist/lib';
 
 import { Client, QueryResult } from 'pg';
+import {
+  buildSearchQ,
+  mappingWithDataType,
+  objToTable,
+  rowToObj,
+  tableToObj,
+} from '../util';
 
 type PGDBType = Client;
 
-function buildSearchQ<E>(
-  search: { [P in keyof E]?: E[P] },
-  param: any[],
-  searchQ: string
-) {
-  let temp = searchQ;
-  const keys: (keyof E)[] = Object.keys(search) as (keyof E)[];
-  if (keys.length > 0) {
-    const filter: string[] = [];
-    let count = 1;
-    for (const key of keys) {
-      if (search[key] !== undefined) {
-        filter.push(`${key} = $${count++}`);
-        param.push(search[key]);
-      }
-    }
-    if (filter.length > 0) {
-      temp = ` WHERE ${filter.join(' AND ')}`;
-    }
-  }
-  return temp;
-}
 export default abstract class PGCon
   extends CoreDBCon<PGDBType, QueryResult | null>
   implements IDataBase<PGDBType, QueryResult | null>
@@ -49,30 +36,20 @@ export default abstract class PGCon
   }
 
   async createEntity<E extends CoreEntity>(
-    className: string,
+    config: EntityConfig<E>,
     entity: E
   ): Promise<E | null> {
     const clone: any = entity;
-    const keys = Object.keys(entity);
-    const param: any[] = [];
-    const vals: string[] = [];
-    const newKeys: string[] = [];
-    let index = 1;
-    keys.forEach((key) => {
-      if (key === 'e_id' && clone[key] === null) {
-        return;
-      }
-      newKeys.push(key);
-      param.push(clone[key]);
-      vals.push(`$${index}`);
-      index++;
-    });
+    const [keys, values, params] = objToTable(entity);
+
     const result = await this.execScripts([
       {
-        exec: `INSERT INTO ${this.schemaName}.${className}(${newKeys.join(
+        exec: `INSERT INTO ${this.schemaName}.${config.className}(${keys.join(
           ', '
-        )}) VALUES (${vals.join(', ')}) returning e_id`,
-        param,
+        )})
+                       VALUES (${values.join(', ')})
+                       returning e_id`,
+        param: params,
       },
     ]);
     clone.e_id = result[0]?.rows[0]?.e_id;
@@ -80,54 +57,51 @@ export default abstract class PGCon
   }
 
   async updateEntity<E extends CoreEntity>(
-    className: string,
+    config: EntityConfig<E>,
     entity: E
   ): Promise<E | null> {
     if (entity.e_id) {
-      const clone: any = entity;
-      const keys = Object.keys(entity);
-      const param: any[] = [];
-      const vals: string[] = [];
-      let index = 1;
-      keys.forEach((key) => {
-        if (key === 'e_id') {
-          return;
-        }
-        param.push(clone[key]);
-        vals.push(`${key}=$${index}`);
-        index++;
-      });
+      const [, values, params] = objToTable(entity, true);
       const result = await this.execScripts([
         {
-          exec: `UPDATE ${this.schemaName}.${className} SET ${vals.join(
-            ', '
-          )} WHERE e_id=${entity.e_id};`,
-          param,
+          exec: `UPDATE ${this.schemaName}.${config.className}
+                           SET ${values.join(', ')}
+                           WHERE e_id = ${entity.e_id};`,
+          param: params,
         },
       ]);
 
-      return result[0] ? clone : null;
+      return result[0] ? entity : null;
     }
     return null;
   }
 
   async getEntityById<E extends CoreEntity>(
-    className: string,
+    config: EntityConfig<E>,
     id: number
   ): Promise<E | null> {
     const query = await this.execScripts([
       {
-        exec: `SELECT * FROM ${this.schemaName}.${className} WHERE e_id=${id};`,
+        exec: `SELECT *
+                       FROM ${this.schemaName}.${config.className}
+                       WHERE e_id = ${id};`,
         param: [],
       },
     ]);
-    return query[0]?.rows[0];
+
+    const res = query[0]?.rows[0];
+    if (res) {
+      return rowToObj<E>(config, res);
+    }
+    return null;
   }
 
   async deleteEntityById(className: string, id: number): Promise<boolean> {
     const query = await this.execScripts([
       {
-        exec: `DELETE FROM ${this.schemaName}.${className} WHERE e_id=${id};`,
+        exec: `DELETE
+                       FROM ${this.schemaName}.${className}
+                       WHERE e_id = ${id};`,
         param: [],
       },
     ]);
@@ -135,7 +109,7 @@ export default abstract class PGCon
   }
 
   async findEntity<E extends CoreEntity>(
-    className: string,
+    config: EntityConfig<E>,
     search: { [P in keyof E]?: E[P] | undefined }
   ): Promise<E | null> {
     let searchQ = '';
@@ -145,31 +119,48 @@ export default abstract class PGCon
 
     const query = await this.execScripts([
       {
-        exec: `SELECT * FROM ${this.schemaName}.${className}${searchQ};`,
+        exec: `SELECT *
+                       FROM ${this.schemaName}.${config.className} ${searchQ};`,
         param,
       },
     ]);
-    return query[0]?.rows[0] || null;
+
+    const res = query[0]?.rows[0];
+    if (res) {
+      return rowToObj<E>(config, res);
+    }
+    return null;
   }
 
   async getEntityList<E extends CoreEntity>(
-    className: string,
-    search: {
+    config: EntityConfig<E>,
+    limit?: number,
+    search?: {
       [P in keyof E]: E[P];
     }
   ): Promise<E[]> {
+    if (limit === 0) {
+      return [];
+    }
     let searchQ = '';
+    const range = limit ? ` LIMIT ${limit}` : '';
     const param: any[] = [];
     if (search) {
       searchQ = buildSearchQ<E>(search, param, searchQ);
     }
     const query = await this.execScripts([
       {
-        exec: `SELECT * FROM ${this.schemaName}.${className}${searchQ};`,
+        exec: `SELECT *
+                       FROM ${this.schemaName}.${config.className} ${searchQ}${range};`,
         param,
       },
     ]);
-    return query[0]?.rows || [];
+
+    const res = query[0]?.rows;
+    if (res) {
+      return tableToObj<E>(config, res);
+    }
+    return [];
   }
 
   async initEntity<E extends CoreEntity>(
@@ -178,9 +169,10 @@ export default abstract class PGCon
   ): Promise<boolean> {
     await this.execScripts([
       {
-        exec: `CREATE TABLE ${
-          this.schemaName
-        }.${className}(${this.transformEntityKeys<E>(entity)});`,
+        exec: `CREATE TABLE ${this.schemaName}.${className}
+                       (
+                           ${this.transformEntityKeys<E>(entity)}
+                       );`,
         param: [],
       },
     ]);
@@ -192,11 +184,13 @@ export default abstract class PGCon
     const out: string[] = [];
 
     keys.forEach((key) => {
-      if (key === 'e_id') {
+      const meta = getColumnMeta(entity, key);
+      if (meta?.dataType) {
+        mappingWithDataType(meta, out, key, this.schemaName);
+      } else if (key === 'e_id') {
         out.push(`e_id SERIAL PRIMARY KEY`);
       } else {
         const type = typeof entity[key];
-        const dat = entity[key] as any;
         switch (type) {
           case 'bigint':
           case 'number':
@@ -204,11 +198,6 @@ export default abstract class PGCon
             break;
           case 'string':
             out.push(`${key} TEXT`);
-            break;
-          case 'object':
-            if (dat instanceof Date) {
-              out.push(`${key} TEXT`);
-            }
             break;
           default:
             break;
@@ -223,9 +212,9 @@ export default abstract class PGCon
     try {
       const query = await this.execScripts([
         {
-          exec: `DELETE 
-                        FROM ${this.schemaName}.config
-                        WHERE c_key = $1;`,
+          exec: `DELETE
+                           FROM ${this.schemaName}.config
+                           WHERE c_key = $1;`,
           param: [key],
         },
       ]);
@@ -308,8 +297,8 @@ export default abstract class PGCon
     const query = await this.execScripts([
       {
         exec: `SELECT *
-             FROM ${this.schemaName}.config
-             WHERE c_key = '${key}'`,
+                       FROM ${this.schemaName}.config
+                       WHERE c_key = '${key}'`,
         param: [],
       },
     ]);
@@ -320,7 +309,7 @@ export default abstract class PGCon
     const query = await this.execScripts([
       {
         exec: `INSERT INTO ${this.schemaName}.config (c_key, c_value)
-             VALUES ('${key}', '${value}');`,
+                       VALUES ('${key}', '${value}');`,
         param: [],
       },
     ]);
@@ -334,8 +323,8 @@ export default abstract class PGCon
     const query = await this.execScripts([
       {
         exec: `SELECT *
-             FROM ${this.schemaName}.config
-             WHERE c_key = '${key}'`,
+                       FROM ${this.schemaName}.config
+                       WHERE c_key = '${key}'`,
         param: [],
       },
     ]);

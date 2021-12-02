@@ -1,4 +1,5 @@
 import PGCon from './class/PGCon';
 
-// eslint-disable-next-line import/prefer-default-export
+export * from './util';
 export { PGCon };
+export default PGCon;

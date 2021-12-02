@@ -1,17 +1,16 @@
 import CoreKernel, {
+  camelToSnakeCase,
+  Column,
   CoreClient,
   CoreCryptoClient, CoreDBCon,
   CoreEntity,
-  CoreKernelModule, CoreLoopService,
+  CoreKernelModule, Entity,
   ICoreCClient, ICoreKernelModule,
   OfflineService,
-  sleep
+  CoreDBUpdate, EProperties
 } from "@grandlinex/core";
-import CoreDBUpdate from "@grandlinex/core/dist/classes/CoreDBUpdate";
-import {PGCon} from "../src";
+import PGCon from "../src/";
 import * as Path from "path";
-
-
 
 type TCoreKernel=CoreKernel<ICoreCClient>;
 
@@ -40,7 +39,7 @@ class TestKernel extends CoreKernel<ICoreCClient> {
     this.setBaseModule(new TestBaseMod("testbase2",this));
     this.setCryptoClient(new CoreCryptoClient(CoreCryptoClient.fromPW("testpw")))
     this.addModule(new TestModuel(this));
-   }
+  }
 }
 
 
@@ -73,18 +72,94 @@ class TestDBUpdate extends CoreDBUpdate<any,any>{
   }
 
 }
-class TestEntity extends CoreEntity{
-  name:string
-  address?:string
-  age:number
-  time?:Date
+@Entity("ExampleEntity")
+class ExampleEntity extends CoreEntity {
+  @Column()
+  title: string;
+  @Column({
+    canBeNull:true,
+    dataType:"int"
+  })
+  age: number|null;
+  @Column({
+    canBeNull:true,
+    dataType:"string"
+  })
+  description: string|null;
 
-  constructor( name: string,age: number ,address?: string , time?: Date) {
-    super( 0 );
-    this.name = name;
-    this.address = address;
-    this.age = age;
-    this.time = time;
+
+  constructor(props?:EProperties<ExampleEntity>) {
+    super();
+    this.title = props?.title||"";
+    this.description = props?.description||null;
+    this.age = props?.age||-1;
+  }
+}
+@Entity("TestEntity")
+class TestEntity extends CoreEntity{
+  @Column()
+  name:string
+  @Column({
+    canBeNull:true,
+    dataType:"string"
+  })
+  address:string|null
+  @Column()
+  age:number
+  @Column({
+    canBeNull:true,
+    dataType:"date"
+  })
+  time:Date|null
+
+  @Column({
+    canBeNull:true,
+    dataType:"blob"
+  })
+  raw: Buffer|null;
+
+  @Column({
+    canBeNull:true,
+    dataType:"json"
+  })
+  json: any|null;
+
+
+  constructor( param?:EProperties<TestEntity> ) {
+    super();
+    this.name = param?.name||"";
+    this.address = param?.address||null;
+    this.age = param?.age||-1;
+    this.time = param?.time||null;
+    this.raw=param?.raw||null;
+    this.json=param?.json||null
+  }
+}
+@Entity("TestEntityLinked")
+class TestEntityLinked extends TestEntity{
+
+  @Column({
+    dataType:"int",
+    unique:true,
+    foreignKey:{
+      key:"e_id",
+      relation:camelToSnakeCase('TestEntity')
+    }
+  })
+  link:number|null
+  @Column({
+    dataType:"boolean"
+  })
+  flag:boolean
+  @Column({
+    dataType:"float"
+  })
+  floating:number
+  constructor( param?:EProperties<TestEntityLinked> ) {
+    super(param);
+    this.link = param?.link||null;
+    this.flag = !!param?.flag;
+    this.floating = param?.floating||0.0;
   }
 }
 class TestModuel extends CoreKernelModule<TCoreKernel,TestDB,TestClient,null,null>{
@@ -96,7 +171,9 @@ class TestModuel extends CoreKernelModule<TCoreKernel,TestDB,TestClient,null,nul
     this.setClient(new TestClient("testc",this))
     this.log("FirstTHIS")
     const db=new TestDB(this)
-    db.registerEntity(new TestEntity("",0,"",new Date()));
+    db.registerEntity(new TestEntity())
+    db.registerEntity(new TestEntityLinked())
+    db.registerEntity(new ExampleEntity())
     this.setDb(db)
     db.setUpdateChain(new TestDBUpdate(this.getDb() as CoreDBCon<any,any>))
   }
@@ -119,8 +196,10 @@ export {
   TCoreKernel,
   TestBaseMod,
   TestKernel,
+  TestEntityLinked,
   TestClient,
   TestDBUpdate,
   TestEntity,
   TestModuel,
- }
+  ExampleEntity
+}
