@@ -40,7 +40,7 @@ export default abstract class PGCon
     entity: E
   ): Promise<E | null> {
     const clone: any = entity;
-    const [keys, values, params] = objToTable(entity);
+    const [keys, values, params] = objToTable(config, entity);
 
     const result = await this.execScripts([
       {
@@ -61,7 +61,7 @@ export default abstract class PGCon
     entity: E
   ): Promise<E | null> {
     if (entity.e_id) {
-      const [, values, params] = objToTable(entity, true);
+      const [, values, params] = objToTable(config, entity, true);
       const result = await this.execScripts([
         {
           exec: `UPDATE ${this.schemaName}.${config.className}

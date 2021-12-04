@@ -1,9 +1,4 @@
-import {
-  ColumnProps,
-  CoreEntity,
-  EntityConfig,
-  getColumnMeta,
-} from '@grandlinex/core';
+import { ColumnProps, CoreEntity, EntityConfig } from '@grandlinex/core';
 
 function convertSpecialFields<E>(
   meta: ColumnProps,
@@ -19,6 +14,7 @@ function convertSpecialFields<E>(
 }
 
 export function objToTable<E extends CoreEntity>(
+  config: EntityConfig<E>,
   entity: E,
   update?: boolean
 ): [(keyof E)[], string[], unknown[]] {
@@ -27,9 +23,10 @@ export function objToTable<E extends CoreEntity>(
   const keys: (keyof E)[] = [];
   const params: any[] = [];
   const values: string[] = [];
+  let pCount = 1;
 
-  keysOrigal.forEach((key, index) => {
-    const meta = getColumnMeta(entity, key);
+  keysOrigal.forEach((key) => {
+    const meta = config.meta.get(key);
     if (!meta) {
       throw new Error('No col meta');
     }
@@ -38,10 +35,11 @@ export function objToTable<E extends CoreEntity>(
     }
     convertSpecialFields<E>(meta, clone, key, params);
     if (update) {
-      values.push(`${key}=$${index}`);
+      values.push(`${key}=$${pCount}`);
     } else {
-      values.push(`$${index}`);
+      values.push(`$${pCount}`);
     }
+    pCount += 1;
 
     keys.push(key);
   });
