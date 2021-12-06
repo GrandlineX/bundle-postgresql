@@ -3,6 +3,7 @@ import {
   CoreDBCon,
   CoreEntity,
   EntityConfig,
+  EOrderBy,
   EProperties,
   EUpDateProperties,
   getColumnMeta,
@@ -140,21 +141,33 @@ export default abstract class PGCon
     limit?: number,
     search?: {
       [P in keyof E]: E[P];
-    }
+    },
+    order?: EOrderBy<E>
   ): Promise<E[]> {
     if (limit === 0) {
       return [];
     }
     let searchQ = '';
+    const orderBy: string[] = [];
+    let orderByQ = '';
     const range = limit ? ` LIMIT ${limit}` : '';
     const param: any[] = [];
     if (search) {
       searchQ = buildSearchQ<E>(search, param, searchQ);
     }
+    if (order && order.length > 0) {
+      order.forEach((val) => {
+        orderBy.push(`${val.key} ${val.order}`);
+      });
+      orderByQ = `ORDER BY ${orderBy.join(',\n')}`;
+    }
     const query = await this.execScripts([
       {
         exec: `SELECT *
-                       FROM ${this.schemaName}.${config.className} ${searchQ}${range};`,
+                       FROM ${this.schemaName}.${config.className} 
+                            ${searchQ}
+                            ${orderByQ}
+                            ${range};`,
         param,
       },
     ]);

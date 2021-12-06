@@ -17,7 +17,9 @@ export default function mappingWithDataType<E extends CoreEntity>(
     const unique = `${meta.unique ? ' UNIQUE' : ''}`;
     let foreignKey: string;
     if (meta.foreignKey) {
-      foreignKey = ` REFERENCES ${schemaName}.${meta.foreignKey.relation}(${meta.foreignKey.key})`;
+      foreignKey = ` REFERENCES ${meta.foreignKey.schema || schemaName}.${
+        meta.foreignKey.relation
+      }(${meta.foreignKey.key})`;
     } else {
       foreignKey = '';
     }
