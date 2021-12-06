@@ -3,6 +3,8 @@ import {
   CoreDBCon,
   CoreEntity,
   EntityConfig,
+  EProperties,
+  EUpDateProperties,
   getColumnMeta,
   ICoreKernelModule,
   IDataBase,
@@ -37,8 +39,8 @@ export default abstract class PGCon
 
   async createEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    entity: E
-  ): Promise<E | null> {
+    entity: EProperties<E>
+  ): Promise<E> {
     const clone: any = entity;
     const [keys, values, params] = objToTable(config, entity);
 
@@ -52,28 +54,29 @@ export default abstract class PGCon
         param: params,
       },
     ]);
-    clone.e_id = result[0]?.rows[0]?.e_id;
+    if (!result[0] || !result[0].rows[0]) {
+      throw this.lError('Cant create entity');
+    }
+    clone.e_id = result[0].rows[0].e_id;
     return clone;
   }
 
   async updateEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    entity: E
-  ): Promise<E | null> {
-    if (entity.e_id) {
-      const [, values, params] = objToTable(config, entity, true);
-      const result = await this.execScripts([
-        {
-          exec: `UPDATE ${this.schemaName}.${config.className}
+    e_id: number,
+    entity: EUpDateProperties<E>
+  ): Promise<boolean> {
+    const [, values, params] = objToTable(config, entity, true);
+    const result = await this.execScripts([
+      {
+        exec: `UPDATE ${this.schemaName}.${config.className}
                            SET ${values.join(', ')}
-                           WHERE e_id = ${entity.e_id};`,
-          param: params,
-        },
-      ]);
+                           WHERE e_id = ${e_id};`,
+        param: params,
+      },
+    ]);
 
-      return result[0] ? entity : null;
-    }
-    return null;
+    return !!result[0];
   }
 
   async getEntityById<E extends CoreEntity>(
