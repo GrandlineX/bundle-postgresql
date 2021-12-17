@@ -119,7 +119,7 @@ export default abstract class PGCon
     let searchQ = '';
     const param: any[] = [];
 
-    searchQ = buildSearchQ<E>(search, param, searchQ);
+    searchQ = buildSearchQ<E>(config, search, param, searchQ);
 
     const query = await this.execScripts([
       {
@@ -153,7 +153,7 @@ export default abstract class PGCon
     const range = limit ? ` LIMIT ${limit}` : '';
     const param: any[] = [];
     if (search) {
-      searchQ = buildSearchQ<E>(search, param, searchQ);
+      searchQ = buildSearchQ<E>(config, search, param, searchQ);
     }
     if (order && order.length > 0) {
       order.forEach((val) => {
