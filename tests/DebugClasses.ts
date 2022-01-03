@@ -11,6 +11,7 @@ import CoreKernel, {
 } from "@grandlinex/core";
 import PGCon from "../src/";
 import * as Path from "path";
+import CoreDBPrefab from "@grandlinex/core/dist/classes/CoreDBPrefab";
 
 type TCoreKernel=CoreKernel<ICoreCClient>;
 
@@ -58,7 +59,20 @@ class TestDB extends PGCon{
   }
 }
 
+class DbPrefab extends CoreDBPrefab<TestDB>{
 
+  constructor(db:TestDB) {
+    super(db);
+    db.registerEntity(new TestEntity())
+    db.registerEntity(new TestEntityLinked())
+    db.registerEntity(new ExampleEntity())
+    db.setUpdateChain(new TestDBUpdate(db))
+  }
+
+  async initPrefabDB(): Promise<void>{
+  }
+
+}
 
 class TestDBUpdate extends CoreDBUpdate<any,any>{
   constructor(db:CoreDBCon<any,any>) {
@@ -162,7 +176,7 @@ class TestEntityLinked extends TestEntity{
     this.floating = param?.floating||0.0;
   }
 }
-class TestModuel extends CoreKernelModule<TCoreKernel,TestDB,TestClient,null,null>{
+class TestModuel extends CoreKernelModule<TCoreKernel,DbPrefab,TestClient,null,null>{
   constructor(kernel:TCoreKernel) {
     super("testModule",kernel);
     this.addService(new OfflineService(this))
@@ -171,11 +185,8 @@ class TestModuel extends CoreKernelModule<TCoreKernel,TestDB,TestClient,null,nul
     this.setClient(new TestClient("testc",this))
     this.log("FirstTHIS")
     const db=new TestDB(this)
-    db.registerEntity(new TestEntity())
-    db.registerEntity(new TestEntityLinked())
-    db.registerEntity(new ExampleEntity())
-    this.setDb(db)
-    db.setUpdateChain(new TestDBUpdate(this.getDb() as CoreDBCon<any,any>))
+    this.setDb(new DbPrefab(db))
+    db.setUpdateChain(new TestDBUpdate(db))
   }
 
   startup(): Promise<void> {
