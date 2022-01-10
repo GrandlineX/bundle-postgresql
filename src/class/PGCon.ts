@@ -201,10 +201,10 @@ export default abstract class PGCon
 
     keys.forEach((key) => {
       const meta = getColumnMeta(entity, key);
-      if (meta?.dataType) {
-        mappingWithDataType(meta, out, key, this.schemaName);
-      } else if (key === 'e_id') {
+      if (key === 'e_id') {
         out.push(`e_id SERIAL PRIMARY KEY`);
+      } else if (meta?.dataType) {
+        mappingWithDataType(meta, out, key, this.schemaName);
       } else {
         const type = typeof entity[key];
         switch (type) {

@@ -88,7 +88,9 @@ class TestDBUpdate extends CoreDBUpdate<any,any>{
 }
 @Entity("ExampleEntity")
 class ExampleEntity extends CoreEntity {
-  @Column()
+  @Column({
+    dataType:"string"
+  })
   title: string;
   @Column({
     canBeNull:true,
@@ -111,14 +113,18 @@ class ExampleEntity extends CoreEntity {
 }
 @Entity("TestEntity")
 class TestEntity extends CoreEntity{
-  @Column()
+  @Column({
+    dataType:"string"
+  })
   name:string
   @Column({
     canBeNull:true,
     dataType:"string"
   })
   address:string|null
-  @Column()
+  @Column({
+    dataType:"string"
+  })
   age:number
   @Column({
     canBeNull:true,
