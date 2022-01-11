@@ -23,13 +23,13 @@ import {
 
 type PGDBType = Client;
 
-export default abstract class PGCon
+export default class PGCon
   extends CoreDBCon<PGDBType, QueryResult | null>
   implements IDataBase<PGDBType, QueryResult | null>
 {
   db: PGDBType | null;
 
-  protected constructor(
+  constructor(
     module: ICoreKernelModule<any, any, any, any, any>,
     dbversion: string
   ) {
@@ -243,7 +243,9 @@ export default abstract class PGCon
     }
   }
 
-  abstract initNewDB(): Promise<void>;
+  async initNewDB(): Promise<void> {
+    this.debug('no init');
+  }
 
   async connect(): Promise<boolean> {
     const store = this.getKernel().getConfigStore();
