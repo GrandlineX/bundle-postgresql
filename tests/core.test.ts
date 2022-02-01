@@ -110,7 +110,7 @@ describe('Entity', () => {
     const mod=kernel.getChildModule("testModule") as ICoreKernelModule<any, any, any, any, any>;
     const db = mod.getDb() as CoreDBCon<any,any>;
     wrapper=db.getEntityWrapper<TestEntity>("TestEntity")
-   wrapper2=db.getEntityWrapper<TestEntityLinked>("TestEntityLinked")
+    wrapper2=db.getEntityWrapper<TestEntityLinked>("TestEntityLinked")
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
       expect((await wrapper.getObjList()).length).toBe(0)
@@ -133,7 +133,7 @@ describe('Entity', () => {
     }
   });
   test('create new 3', async () => {
-   expect(wrapper2).not.toBeUndefined()
+    expect(wrapper2).not.toBeUndefined()
     if (wrapper2){
       entity3.link=entity.e_id
       entity3=await wrapper2.createObject(entity3)||entity3;
@@ -153,7 +153,7 @@ describe('Entity', () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
       expect((await wrapper.getObjList({
-        e_id: entity.e_id,
+        search:{e_id: entity.e_id,}
       }))).toHaveLength(1);
     }
   });
@@ -161,7 +161,7 @@ describe('Entity', () => {
     expect(wrapper2).not.toBeUndefined()
     if (wrapper2){
       expect((await wrapper2.getObjList({
-        link: entity.e_id,
+        search:{link: entity.e_id}
       }))).toHaveLength(1);
     }
   });
@@ -169,7 +169,7 @@ describe('Entity', () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
       expect((await wrapper.getObjList({
-        name:"Bob"
+        search:{name:"Bob"}
       }))).toHaveLength(1);
     }
   });
@@ -177,7 +177,7 @@ describe('Entity', () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
       expect((await wrapper.getObjList({
-        name:"Bob"
+        search:{name:"Bob"}
       }))).toHaveLength(1);
     }
   });
@@ -186,7 +186,7 @@ describe('Entity', () => {
 
     if (wrapper){
       const bonb=await wrapper.getObjList({
-        name:"Bob"
+        search:{name:"Bob"}
       })
       expect(bonb).toHaveLength(1);
       expect(bonb[0].time).not.toBeNull();
@@ -218,7 +218,7 @@ describe('Entity', () => {
   });
   test('delete', async () => {
     expect(wrapper).not.toBeUndefined()
- //   expect(wrapper2).not.toBeUndefined()
+    expect(wrapper2).not.toBeUndefined()
 
     if (wrapper2){
       expect((await wrapper2.getObjList()).length).toBe(1)
@@ -264,7 +264,7 @@ describe('Bulk Entity', () => {
         idList.push(entity.e_id as number)
         expect((await wrapper.getObjList()).length).toBe(i+1)
         expect((await wrapper.getObjList({
-          time:entity.time
+          search: {time: entity.time}
         })).length).toBeGreaterThanOrEqual(1)
       }
     }else {
@@ -275,26 +275,36 @@ describe('Bulk Entity', () => {
   test('listing search id limit 0', async () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
-      expect((await wrapper.getObjList(undefined,0))).toHaveLength(0);
+      expect((await wrapper.getObjList({limit:0}))).toHaveLength(0);
     }
   });
   test('listing search id limit 1', async () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
-      expect((await wrapper.getObjList(undefined,1))).toHaveLength(1);
+      expect((await wrapper.getObjList({limit:1}))).toHaveLength(1);
     }
   });
   test('listing search id limit 2', async () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
-      expect((await wrapper.getObjList(undefined,2))).toHaveLength(2);
+      expect((await wrapper.getObjList({limit:2}))).toHaveLength(2);
     }
   });
+  test('test offset', async () => {
+    expect(wrapper).not.toBeUndefined()
+    if (wrapper){
+      const first=(await wrapper.getObjList({limit:1}))[0]
+      const sec=(await wrapper.getObjList({limit:1,offset:1}))[0]
+      expect(first.e_id).not.toBe(sec.e_id);
+    }
+  });
+
   test('listing search id limit ASC DESC', async () => {
     expect(wrapper).not.toBeUndefined()
     if (wrapper){
-      const a=await wrapper.getObjList(undefined,2,[{key:"e_id",order:"ASC"}])
-      const b= await wrapper.getObjList(undefined,2,[{key:"e_id",order:"DESC"}])
+      const a=await wrapper.getObjList({ limit:2, order: [{key: "e_id", order: "ASC"}]
+      })
+      const b= await wrapper.getObjList({limit: 2, order:[{key: "e_id", order: "DESC"}]})
       expect(a.length).toBe(2)
       expect(b.length).toBe(2)
       expect(a[0].e_id !== b[0].e_id).toBeTruthy()
