@@ -42,7 +42,6 @@ export default class PGCon
     config: EntityConfig<E>,
     entity: EProperties<E>
   ): Promise<E> {
-    const clone: any = entity;
     const [keys, values, params] = objToTable(config, entity);
 
     const result = await this.execScripts([
@@ -58,22 +57,23 @@ export default class PGCon
     if (!result[0] || !result[0].rows[0]) {
       throw this.lError('Cant create entity');
     }
-    clone.e_id = result[0].rows[0].e_id;
-    return clone;
+
+    return entity as E;
   }
 
   async updateEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    e_id: number,
+    e_id: string,
     entity: EUpDateProperties<E>
   ): Promise<boolean> {
     const [, values, params] = objToTable(config, entity, true);
+    const idd = `$${values.length + 1}`;
     const result = await this.execScripts([
       {
         exec: `UPDATE ${this.schemaName}.${config.className}
                            SET ${values.join(', ')}
-                           WHERE e_id = ${e_id};`,
-        param: params,
+                           WHERE e_id = ${idd};`,
+        param: [...params, e_id],
       },
     ]);
 
@@ -82,14 +82,14 @@ export default class PGCon
 
   async getEntityById<E extends CoreEntity>(
     config: EntityConfig<E>,
-    id: number
+    e_id: string
   ): Promise<E | null> {
     const query = await this.execScripts([
       {
         exec: `SELECT *
                        FROM ${this.schemaName}.${config.className}
-                       WHERE e_id = ${id};`,
-        param: [],
+                       WHERE e_id = $1`,
+        param: [e_id],
       },
     ]);
 
@@ -100,13 +100,13 @@ export default class PGCon
     return null;
   }
 
-  async deleteEntityById(className: string, id: number): Promise<boolean> {
+  async deleteEntityById(className: string, e_id: string): Promise<boolean> {
     const query = await this.execScripts([
       {
         exec: `DELETE
                        FROM ${this.schemaName}.${className}
-                       WHERE e_id = ${id};`,
-        param: [],
+                       WHERE e_id = $1`,
+        param: [e_id],
       },
     ]);
     return query[0] !== null;
@@ -198,9 +198,7 @@ export default class PGCon
 
     keys.forEach((key) => {
       const meta = getColumnMeta(entity, key);
-      if (key === 'e_id') {
-        out.push(`e_id SERIAL PRIMARY KEY`);
-      } else if (meta?.dataType) {
+      if (meta?.dataType) {
         mappingWithDataType(meta, out, key, this.schemaName);
       } else {
         const type = typeof entity[key];
@@ -324,7 +322,9 @@ export default class PGCon
     const query = await this.execScripts([
       {
         exec: `INSERT INTO ${this.schemaName}.config (c_key, c_value)
-                       VALUES ('${key}', '${value}');`,
+                       VALUES ('${key}', '${value}')
+               ON CONFLICT (c_key) DO UPDATE
+               SET c_value = excluded.c_value;`,
         param: [],
       },
     ]);

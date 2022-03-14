@@ -13,7 +13,10 @@ export default function mappingWithDataType<E extends CoreEntity>(
   if (meta.dataType === 'serial') {
     out.push(`${key} SERIAL NOT NUL`);
   } else {
-    const canBeNull = `${meta.canBeNull ? '' : ' NOT NULL'}`;
+    let canBeNull = `${meta.canBeNull ? '' : ' NOT NULL'}`;
+    if (meta.primaryKey) {
+      canBeNull = ' NOT NULL PRIMARY KEY';
+    }
     const unique = `${meta.unique ? ' UNIQUE' : ''}`;
     let foreignKey: string;
     if (meta.foreignKey) {
@@ -23,6 +26,7 @@ export default function mappingWithDataType<E extends CoreEntity>(
     } else {
       foreignKey = '';
     }
+
     const dbType = resolveDBType(meta.dataType);
     out.push(`${key} ${dbType}${foreignKey}${canBeNull}${unique}`);
   }
