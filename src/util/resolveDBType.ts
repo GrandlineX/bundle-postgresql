@@ -11,6 +11,7 @@ export default function resolveDBType(dType: DataType) {
       return 'BYTEA';
     case 'string':
     case 'text':
+    case 'uuid':
       return 'TEXT';
     case 'boolean':
       return 'BOOLEAN';
