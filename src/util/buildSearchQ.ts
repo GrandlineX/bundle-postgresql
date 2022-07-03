@@ -18,7 +18,7 @@ export default function buildSearchQ<E>(
         if (!meta) {
           throw new Error('Missing meta');
         }
-        filter.push(`${key} = $${count++}`);
+        filter.push(`${String(key)} = $${count++}`);
         convertSpecialFields(meta, search, key, param);
       }
     }
