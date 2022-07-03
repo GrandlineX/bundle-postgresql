@@ -32,10 +32,10 @@ export default class PGCon<
     T extends IDataBase<any, any> | null = any,
     P extends ICoreClient | null = any,
     C extends ICoreCache | null = any,
-    E extends ICorePresenter<any> | null = any
+    X extends ICorePresenter<any> | null = any
   >
-  extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, E>
-  implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, E>
+  extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, X>
+  implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, X>
 {
   db: PGDBType | null;
 
@@ -124,7 +124,7 @@ export default class PGCon<
 
   async findEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    search: { [P in keyof E]?: E[P] | undefined }
+    search: { [D in keyof E]?: E[D] | undefined }
   ): Promise<E | null> {
     let searchQ = '';
     const param: any[] = [];
