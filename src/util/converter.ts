@@ -40,7 +40,7 @@ export function objToTable<E extends CoreEntity>(
     }
     convertSpecialFields<E>(meta, clone, key, params);
     if (update) {
-      values.push(`${key}=$${pCount}`);
+      values.push(`${String(key)}=$${pCount}`);
     } else {
       values.push(`$${pCount}`);
     }

@@ -6,7 +6,11 @@ import {
   EProperties,
   EUpDateProperties,
   getColumnMeta,
+  ICoreCache,
+  ICoreClient,
+  ICoreKernel,
   ICoreKernelModule,
+  ICorePresenter,
   IDataBase,
   QueryInterface,
 } from '@grandlinex/core';
@@ -23,9 +27,15 @@ import {
 
 type PGDBType = Client;
 
-export default class PGCon
-  extends CoreDBCon<PGDBType, QueryResult | null>
-  implements IDataBase<PGDBType, QueryResult | null>
+export default class PGCon<
+    K extends ICoreKernel<any> = ICoreKernel<any>,
+    T extends IDataBase<any, any> | null = any,
+    P extends ICoreClient | null = any,
+    C extends ICoreCache | null = any,
+    E extends ICorePresenter<any> | null = any
+  >
+  extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, E>
+  implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, E>
 {
   db: PGDBType | null;
 
@@ -154,7 +164,7 @@ export default class PGCon
     }
     if (order && order.length > 0) {
       order.forEach((val) => {
-        orderBy.push(`${val.key} ${val.order}`);
+        orderBy.push(`${String(val.key)} ${val.order}`);
       });
       orderByQ = `ORDER BY ${orderBy.join(',\n')}`;
     }
@@ -205,10 +215,10 @@ export default class PGCon
         switch (type) {
           case 'bigint':
           case 'number':
-            out.push(`${key} INT`);
+            out.push(`${String(key)} INT`);
             break;
           case 'string':
-            out.push(`${key} TEXT`);
+            out.push(`${String(key)} TEXT`);
             break;
           default:
             break;
