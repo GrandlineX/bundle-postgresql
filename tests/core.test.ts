@@ -1,20 +1,13 @@
-import * as Path from 'path';
-import {
-  CoreModule,
-  createFolderIfNotExist,
-  setupDevKernel, TestContext,
-  TestKernel,
+ import {
+    CoreModule,
+    setupDevKernel, TestContext,
+    TestKernel, XUtil,
 } from '@grandlinex/core';
 import PGCon from "../src";
 
 const appName = 'TestKernel';
 const appCode = 'tkernel';
-const msiPath = Path.join(__dirname, '..', 'data');
-const testPath = Path.join(__dirname, '..', 'data', 'config');
-
-createFolderIfNotExist(msiPath);
-createFolderIfNotExist(testPath);
-
+ const [testPath] =XUtil.setupEnvironment([__dirname,'..'],['data','config'])
 const [kernel] = TestContext.getEntity(
     {
       kernel:new TestKernel(appName, appCode, testPath, __dirname+"/.."),
