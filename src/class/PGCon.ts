@@ -13,8 +13,8 @@ import {
   ICorePresenter,
   IDataBase,
   QueryInterface,
+  RawQuery,
 } from '@grandlinex/core';
-import { RawQuery } from '@grandlinex/core/dist/lib';
 
 import { Client, QueryResult } from 'pg';
 import {

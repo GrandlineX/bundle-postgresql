@@ -1,5 +1,5 @@
  import {
-    CoreModule,
+    CoreModule, JestLib,
     setupDevKernel, TestContext,
     TestKernel, XUtil,
 } from '@grandlinex/core';
@@ -24,8 +24,8 @@ setupDevKernel(kernel, (mod) => {
 
 kernel.setBaseModule(new CoreModule(kernel,(mod)=> new PGCon(mod,"0")))
 
-require('@grandlinex/core/dist/dev/lib/start');
-require('@grandlinex/core/dist/dev/lib/core');
-require('@grandlinex/core/dist/dev/lib/dbcon');
-require('@grandlinex/core/dist/dev/lib/end');
-require('@grandlinex/core/dist/dev/lib/orm');
+ JestLib.jestStart();
+ JestLib.jestCore();
+ JestLib.jestDb();
+ JestLib.jestEnd();
+ JestLib.jestOrm();
