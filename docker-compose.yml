@@ -1,7 +1,7 @@
 version: '3'
 services:
   dev-db:
-    image: postgres:latest
+    image: postgres:14
     volumes:
       - ./data/db:/var/lib/postgresql/data
     env_file:
