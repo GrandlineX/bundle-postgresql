@@ -1,6 +1,6 @@
 {
   "name": "@grandlinex/bundle-postgresql",
-  "version": "0.30.2",
+  "version": "0.30.3",
   "description": "",
   "type": "module",
   "exports": {

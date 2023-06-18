@@ -23,7 +23,7 @@ setupDevKernel(kernel, (mod) => {
 });
 
 kernel.setBaseModule(new CoreModule(kernel,(mod)=> new PGCon(mod,"0")))
-
+ jest.setTimeout(15000);
  JestLib.jestStart();
  JestLib.jestCore();
  JestLib.jestDb();

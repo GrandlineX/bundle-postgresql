@@ -23,7 +23,7 @@ import {
   objToTable,
   rowToObj,
   tableToObj,
-} from '../util';
+} from '../util/index.js';
 
 type PGDBType = Client;
 
