@@ -5,6 +5,7 @@ export default function resolveDBType(dType: DataType) {
     case 'int':
       return 'INT';
     case 'double':
+      return 'decimal';
     case 'float':
       return 'REAL';
     case 'blob':

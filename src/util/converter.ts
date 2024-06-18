@@ -9,7 +9,7 @@ export function convertSpecialFields<E>(
   meta: ColumnProps,
   clone: any,
   key: keyof E,
-  params: any[]
+  params: any[],
 ) {
   if (meta.dataType === 'json') {
     params.push(JSON.stringify(clone[key]));
@@ -21,7 +21,7 @@ export function convertSpecialFields<E>(
 export function objToTable<E extends CoreEntity>(
   config: EntityConfig<E>,
   entity: E | EUpDateProperties<E>,
-  update?: boolean
+  update?: boolean,
 ): [(keyof E)[], string[], unknown[]] {
   const clone: any = entity;
   const keysOrigal = Object.keys(entity) as (keyof E)[];
@@ -57,14 +57,14 @@ export function objToTable<E extends CoreEntity>(
 
 export function rowToObj<E extends CoreEntity>(
   config: EntityConfig<E>,
-  row: any
+  row: any,
 ): E {
   return row;
 }
 
 export function tableToObj<E extends CoreEntity>(
   config: EntityConfig<E>,
-  table: any[]
+  table: any[],
 ): E[] {
   return table.map((row) => {
     return rowToObj(config, row);

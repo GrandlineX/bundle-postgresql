@@ -32,7 +32,7 @@ export default class PGCon<
     T extends IDataBase<any, any> | null = any,
     P extends ICoreClient | null = any,
     C extends ICoreCache | null = any,
-    X extends ICorePresenter<any> | null = any
+    X extends ICorePresenter<any> | null = any,
   >
   extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, X>
   implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, X>
@@ -41,7 +41,7 @@ export default class PGCon<
 
   constructor(
     module: ICoreKernelModule<any, any, any, any, any>,
-    dbversion: string
+    dbversion: string,
   ) {
     super(dbversion, module.getName(), module);
 
@@ -50,14 +50,14 @@ export default class PGCon<
 
   async createEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    entity: EProperties<E>
+    entity: EProperties<E>,
   ): Promise<E> {
     const [keys, values, params] = objToTable(config, entity);
 
     const result = await this.execScripts([
       {
         exec: `INSERT INTO ${this.schemaName}.${config.className}(${keys.join(
-          ', '
+          ', ',
         )})
                        VALUES (${values.join(', ')})
                        returning e_id`,
@@ -74,7 +74,7 @@ export default class PGCon<
   async updateEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
     e_id: string,
-    entity: EUpDateProperties<E>
+    entity: EUpDateProperties<E>,
   ): Promise<boolean> {
     const [, values, params] = objToTable(config, entity, true);
     const idd = `$${values.length + 1}`;
@@ -92,7 +92,7 @@ export default class PGCon<
 
   async getEntityById<E extends CoreEntity>(
     config: EntityConfig<E>,
-    e_id: string
+    e_id: string,
   ): Promise<E | null> {
     const query = await this.execScripts([
       {
@@ -124,7 +124,7 @@ export default class PGCon<
 
   async findEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    search: { [D in keyof E]?: E[D] | undefined }
+    search: { [D in keyof E]?: E[D] | undefined },
   ): Promise<E | null> {
     let searchQ = '';
     const param: any[] = [];
@@ -147,7 +147,7 @@ export default class PGCon<
   }
 
   async getEntityList<E extends CoreEntity>(
-    q: QueryInterface<E>
+    q: QueryInterface<E>,
   ): Promise<E[]> {
     const { limit, config, search, offset, order } = q;
     if (limit === 0) {
@@ -188,7 +188,7 @@ export default class PGCon<
 
   async initEntity<E extends CoreEntity>(
     className: string,
-    entity: E
+    entity: E,
   ): Promise<boolean> {
     await this.execScripts([
       {
@@ -282,7 +282,7 @@ export default class PGCon<
     const query = await client.query(
       `SELECT count(schema_name)
              FROM information_schema.schemata
-             where schema_name = '${this.schemaName}';`
+             where schema_name = '${this.schemaName}';`,
     );
     if (query.rows.length !== 1) {
       process.exit(3);

@@ -5,7 +5,7 @@ export default function mappingWithDataType<E extends CoreEntity>(
   meta: ColumnProps,
   out: string[],
   key: keyof E,
-  schemaName: string
+  schemaName: string,
 ): void {
   if (!meta.dataType) {
     throw new Error('DataType not set');
