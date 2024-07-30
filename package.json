@@ -1,6 +1,6 @@
 {
   "name": "@grandlinex/bundle-postgresql",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "type": "module",
   "exports": {
@@ -42,7 +42,7 @@
   },
   "license": "BSD-3-Clause",
   "dependencies": {
-    "@grandlinex/core": "1.0.0",
+    "@grandlinex/core": "1.0.1",
     "pg": "8.12.0",
     "@types/pg": "8.11.6"
   },
