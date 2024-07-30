@@ -12,6 +12,7 @@ import {
   ICoreKernelModule,
   ICorePresenter,
   IDataBase,
+  IEntity,
   QueryInterface,
   RawQuery,
 } from '@grandlinex/core';
@@ -60,7 +61,7 @@ export default class PGCon<
           ', ',
         )})
                        VALUES (${values.join(', ')})
-                       returning e_id`,
+                       returning e_id;`,
         param: params,
       },
     ]);
@@ -90,6 +91,25 @@ export default class PGCon<
     return !!result[0];
   }
 
+  async updateBulkEntity<E extends IEntity>(
+    config: EntityConfig<E>,
+    e_id: string[],
+    entity: EUpDateProperties<E>,
+  ): Promise<boolean> {
+    const [, values, params] = objToTable(config, entity, true);
+    let idd = values.length + 1;
+    const result = await this.execScripts([
+      {
+        exec: `UPDATE ${this.schemaName}.${config.className}
+                           SET ${values.join(', ')}
+                           WHERE e_id  in (${e_id.map(() => `$${idd++}`).join(',')});`,
+        param: [...params, ...e_id],
+      },
+    ]);
+
+    return !!result[0];
+  }
+
   async getEntityById<E extends CoreEntity>(
     config: EntityConfig<E>,
     e_id: string,
@@ -98,7 +118,7 @@ export default class PGCon<
       {
         exec: `SELECT *
                        FROM ${this.schemaName}.${config.className}
-                       WHERE e_id = $1`,
+                       WHERE e_id = $1;`,
         param: [e_id],
       },
     ]);
@@ -110,13 +130,50 @@ export default class PGCon<
     return null;
   }
 
+  async getEntityBulkById<E extends CoreEntity>(
+    config: EntityConfig<E>,
+    e_id: string[],
+  ): Promise<E[]> {
+    let counter = 1;
+    const query = await this.execScripts([
+      {
+        exec: `SELECT *
+                       FROM ${this.schemaName}.${config.className}
+                       WHERE e_id in (${e_id.map(() => `$${counter++}`).join(',')});`,
+        param: [...e_id],
+      },
+    ]);
+
+    const res = query[0]?.rows;
+    if (res) {
+      return tableToObj<E>(config, res);
+    }
+    return [];
+  }
+
   async deleteEntityById(className: string, e_id: string): Promise<boolean> {
     const query = await this.execScripts([
       {
         exec: `DELETE
                        FROM ${this.schemaName}.${className}
-                       WHERE e_id = $1`,
+                       WHERE e_id = $1;`,
         param: [e_id],
+      },
+    ]);
+    return query[0] !== null;
+  }
+
+  async deleteEntityBulkById(
+    className: string,
+    e_id: string[],
+  ): Promise<boolean> {
+    let counter = 1;
+    const query = await this.execScripts([
+      {
+        exec: `DELETE
+                       FROM ${this.schemaName}.${className}
+                       WHERE e_id in (${e_id.map(() => `$${counter++}`).join(',')});`,
+        param: [...e_id],
       },
     ]);
     return query[0] !== null;
@@ -133,8 +190,7 @@ export default class PGCon<
 
     const query = await this.execScripts([
       {
-        exec: `SELECT *
-                       FROM ${this.schemaName}.${config.className} ${searchQ};`,
+        exec: `SELECT * FROM ${this.schemaName}.${config.className} ${searchQ};`,
         param,
       },
     ]);
@@ -170,8 +226,7 @@ export default class PGCon<
     }
     const query = await this.execScripts([
       {
-        exec: `SELECT *
-                       FROM ${this.schemaName}.${config.className} 
+        exec: `SELECT * FROM ${this.schemaName}.${config.className} 
                             ${searchQ}
                             ${orderByQ}
                             ${range};`,
