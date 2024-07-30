@@ -40,13 +40,17 @@ export default class PGCon<
 {
   db: PGDBType | null;
 
+  printLog: boolean;
+
   constructor(
     module: ICoreKernelModule<any, any, any, any, any>,
     dbversion: string,
+    printLog = false,
   ) {
     super(dbversion, module.getName(), module);
 
     this.db = null;
+    this.printLog = printLog;
   }
 
   async createEntity<E extends CoreEntity>(
@@ -96,6 +100,9 @@ export default class PGCon<
     e_id: string[],
     entity: EUpDateProperties<E>,
   ): Promise<boolean> {
+    if (e_id.length === 0) {
+      return false;
+    }
     const [, values, params] = objToTable(config, entity, true);
     let idd = values.length + 1;
     const result = await this.execScripts([
@@ -134,6 +141,9 @@ export default class PGCon<
     config: EntityConfig<E>,
     e_id: string[],
   ): Promise<E[]> {
+    if (e_id.length === 0) {
+      return [];
+    }
     let counter = 1;
     const query = await this.execScripts([
       {
@@ -167,6 +177,9 @@ export default class PGCon<
     className: string,
     e_id: string[],
   ): Promise<boolean> {
+    if (e_id.length === 0) {
+      return false;
+    }
     let counter = 1;
     const query = await this.execScripts([
       {
@@ -419,6 +432,9 @@ export default class PGCon<
     const output: (QueryResult | null)[] = [];
     try {
       for (const el of list) {
+        if (this.printLog) {
+          this.verbose(el.exec, el.param);
+        }
         const res = await this.db?.query(el.exec, el.param);
         if (res) {
           output.push(res);

@@ -3,7 +3,7 @@
     setupDevKernel, TestContext,
     TestKernel, XUtil,
 } from '@grandlinex/core';
-import PGCon from "../src";
+import PGCon from '../src';
 
 const appName = 'TestKernel';
 const appCode = 'tkernel';
