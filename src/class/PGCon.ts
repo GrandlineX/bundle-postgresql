@@ -16,8 +16,8 @@ import {
   QueryInterface,
   RawQuery,
 } from '@grandlinex/core';
-
-import { Client, QueryResult } from 'pg';
+import moment from 'moment';
+import pg, { Client, QueryResult } from 'pg';
 import {
   buildSearchQ,
   mappingWithDataType,
@@ -51,6 +51,7 @@ export default class PGCon<
 
     this.db = null;
     this.printLog = printLog;
+    pg.types.setTypeParser(1114, (str) => moment.utc(str).format());
   }
 
   async createEntity<E extends CoreEntity>(
