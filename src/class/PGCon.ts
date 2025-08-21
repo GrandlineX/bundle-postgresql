@@ -13,6 +13,7 @@ import {
   ICorePresenter,
   IDataBase,
   IEntity,
+  QInterfaceSearch,
   QueryInterface,
   RawQuery,
 } from '@grandlinex/core';
@@ -195,7 +196,7 @@ export default class PGCon<
 
   async findEntity<E extends CoreEntity>(
     config: EntityConfig<E>,
-    search: { [D in keyof E]?: E[D] | undefined },
+    search: QInterfaceSearch<E>,
   ): Promise<E | null> {
     let searchQ = '';
     const param: any[] = [];

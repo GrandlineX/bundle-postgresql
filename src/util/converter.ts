@@ -5,16 +5,15 @@ import {
   EUpDateProperties,
 } from '@grandlinex/core';
 
-export function convertSpecialFields<E>(
+export function convertSpecialFields(
   meta: ColumnProps,
-  clone: any,
-  key: keyof E,
+  value: any,
   params: any[],
 ) {
   if (meta.dataType === 'json') {
-    params.push(JSON.stringify(clone[key]));
+    params.push(JSON.stringify(value));
   } else {
-    params.push(clone[key]);
+    params.push(value);
   }
 }
 
@@ -38,7 +37,7 @@ export function objToTable<E extends CoreEntity>(
     if (meta.primaryKey && update) {
       return;
     }
-    convertSpecialFields<E>(meta, clone, key, params);
+    convertSpecialFields(meta, clone[key], params);
     if (update) {
       values.push(`${String(key)}=$${pCount}`);
     } else {
