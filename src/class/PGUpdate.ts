@@ -41,12 +41,12 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
     } else if (notNull) {
       query.push({
         exec: `ALTER TABLE ${db.schemaName}.${tableName} ADD ${columName} ${type} NOT NULL;`,
-        param: [defaultValue],
+        param: [],
       });
     } else {
       query.push({
         exec: `ALTER TABLE ${db.schemaName}.${tableName} ADD ${columName} ${type};`,
-        param: [defaultValue],
+        param: [],
       });
     }
 
