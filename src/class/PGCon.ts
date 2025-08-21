@@ -232,6 +232,8 @@ export default class PGCon<
     const param: any[] = [];
     if (search) {
       searchQ = buildSearchQ<E>(config, search, param, searchQ);
+      this.debug(searchQ);
+      this.debug(param);
     }
     if (order && order.length > 0) {
       order.forEach((val) => {

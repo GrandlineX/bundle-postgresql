@@ -24,18 +24,24 @@ function aFilter<E extends CoreEntity>(
   key: string,
   s: QInterfaceSearchAdvanced<QInterfaceSearch<E>, keyof E>,
   count: ParamCounter,
-): string {
+): [string, boolean?] {
   switch (s.mode) {
     case 'equals':
-      return `${key} = ${count.next()}`;
+      if (s.value === null) {
+        return [`${key} IS NULL}`, true];
+      }
+      return [`${key} = ${count.next()}`];
     case 'not':
-      return `${key} != ${count.next()}`;
+      if (s.value === null) {
+        return [`${key} IS NOT NULL}`, true];
+      }
+      return [`${key} != ${count.next()}`];
     case 'like':
-      return `${key} like '%' || ${count.next()} || '%'`;
+      return [`${key} like '%' || ${count.next()} || '%'`];
     case 'smallerThan':
-      return `${key} < ${count.next()}`;
+      return [`${key} < ${count.next()}`];
     case 'greaterThan':
-      return `${key} > ${count.next()}`;
+      return [`${key} > ${count.next()}`];
     default:
       throw new Error(`Unknown mode: ${s.mode}`);
   }
@@ -59,16 +65,23 @@ export default function buildSearchQ<E extends CoreEntity>(
         throw new Error('Missing meta');
       }
       if (isQInterfaceSearchAdvanced(s)) {
-        filter.push(aFilter(String(key), s, count));
-        convertSpecialFields(meta, s.value, param);
+        const [f, skip] = aFilter(String(key), s, count);
+        filter.push(f);
+        if (!skip) {
+          convertSpecialFields(meta, s.value, param);
+        }
       } else if (isQInterfaceSearchAdvancedArr(s)) {
         filter.push(
           ...s.map((e) => {
-            const ax = aFilter(String(key), e, count);
-            convertSpecialFields(meta, e.value, param);
-            return ax;
+            const [f, skip] = aFilter(String(key), e, count);
+            if (!skip) {
+              convertSpecialFields(meta, e.value, param);
+            }
+            return f;
           }),
         );
+      } else if (search[key] === null) {
+        filter.push(`${String(key)} IS NULL`);
       } else {
         filter.push(`${String(key)} = ${count.next()}`);
         convertSpecialFields(meta, search[key], param);
