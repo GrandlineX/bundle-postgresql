@@ -26,7 +26,7 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
     columName: string,
     type: string,
     notNull: boolean,
-    defaultValue?: any,
+    defaultValue?: string,
     deleteDefault?: boolean,
   ): Promise<boolean> {
     const db = this.getDb();
@@ -35,8 +35,8 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
 
     if (notNull && defaultValue !== undefined) {
       query.push({
-        exec: `ALTER TABLE ${db.schemaName}.${tableName} ADD ${columName} ${type} NOT NULL DEFAULT $1;`,
-        param: [defaultValue],
+        exec: `ALTER TABLE ${db.schemaName}.${tableName} ADD ${columName} ${type} NOT NULL DEFAULT ${defaultValue};`,
+        param: [],
       });
     } else if (notNull) {
       query.push({
