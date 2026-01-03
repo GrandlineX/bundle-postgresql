@@ -37,7 +37,7 @@ function aFilter<E extends CoreEntity>(
       }
       return [`${key} != ${count.next()}`];
     case 'like':
-      return [`${key} like '%' || ${count.next()} || '%'`];
+      return [`LOWER(${key}) like '%' || LOWER(${count.next()}) || '%'`];
     case 'smallerThan':
       return [`${key} < ${count.next()}`];
     case 'greaterThan':
