@@ -29,6 +29,17 @@ import {
 
 type PGDBType = Client;
 
+/**
+ * PGCon is a PostgreSQL database connection implementation that extends {@link CoreDBCon} and implements {@link IDataBase}.
+ *
+ * @template K - Core kernel type extending {@link ICoreKernel<any>}
+ * @template T - Data base type extending {@link IDataBase<any, any>} or null
+ * @template P - Core client type extending {@link ICoreClient} or null
+ * @template C - Core cache type extending {@link ICoreCache} or null
+ * @template X - Core presenter type extending {@link ICorePresenter<any>} or null
+ * @extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, X>
+ * @implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, X>
+ */
 export default class PGCon<
     K extends ICoreKernel<any> = ICoreKernel<any>,
     T extends IDataBase<any, any> | null = any,

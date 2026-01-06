@@ -1,6 +1,13 @@
 import { CoreDBUpdate, RawQuery, XUtil } from '@grandlinex/core';
 import PGCon from './PGCon.js';
 
+/**
+ * Abstract helper class for performing database schema updates on PostgreSQL.
+ *
+ * Extends {@link CoreDBUpdate} specialized for the {@link PGCon} connection type.
+ *
+ * @abstract
+ */
 export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
   /**
    * Initialize a new table in the database.
@@ -12,14 +19,15 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
   }
 
   /**
-   * Alter a table to add a new column.
-   * @param className
-   * @param columName
-   * @param type
-   * @param notNull
-   * @param defaultValue
-   * @param deleteDefault
-   * @protected
+   * Adds a new column to a database table corresponding to the provided class name.
+   *
+   * @param {string} className - The name of the class whose table will be altered. The table name is derived by converting the class name from camelCase to snake_case.
+   * @param {string} columName - The name of the new column to add.
+   * @param {string} type - The SQL data type of the new column (e.g., `"INTEGER"`, `"VARCHAR(255)"`).
+   * @param {boolean} notNull - Whether the new column should be defined as NOT NULL.
+   * @param {string} [defaultValue] - Optional default value for the new column. If supplied, the default is applied unless `deleteDefault` is true.
+   * @param {boolean} [deleteDefault] - When true and a default value is supplied, the default is dropped after the column is added.
+   * @returns {Promise<boolean>} A promise that resolves to `true` if all SQL statements executed successfully, otherwise `false`.
    */
   protected async alterTableAddColumn(
     className: string,
@@ -60,11 +68,11 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
   }
 
   /**
-   * Alter a table to delete a column.
-   * This method is used to remove a column from an existing table in the database.
-   * @param className
-   * @param columName
-   * @protected
+   * Deletes a column from the database table that corresponds to the given class name.
+   *
+   * @param {string} className The name of the class representing the table. The method converts this name from camelCase to snake_case to derive the actual table name.
+   * @param {string} columName The name of the column to be removed from the table.
+   * @returns {Promise<boolean>} A promise that resolves to `true` when the column has been successfully dropped from all executed queries; otherwise it resolves to `false`.
    */
   protected async alterTableDeleteColumn(
     className: string,
