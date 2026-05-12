@@ -1,4 +1,5 @@
 import {
+  ColumnProps,
   CoreEntity,
   EntityConfig,
   isQInterfaceSearchAdvanced,
@@ -24,26 +25,59 @@ function aFilter<E extends CoreEntity>(
   key: string,
   s: QInterfaceSearchAdvanced<QInterfaceSearch<E>, keyof E>,
   count: ParamCounter,
-): [string, boolean?] {
+  meta: ColumnProps,
+  param: any[],
+): string {
   switch (s.mode) {
     case 'equals':
-      if (s.value === null) {
-        return [`${key} IS NULL}`, true];
+      if ((s as any).value === null) {
+        return `${key} IS NULL`;
       }
-      return [`${key} = ${count.next()}`];
+      convertSpecialFields(meta, (s as any).value, param);
+      return `${key} = ${count.next()}`;
     case 'not':
-      if (s.value === null) {
-        return [`${key} IS NOT NULL}`, true];
+      if ((s as any).value === null) {
+        return `${key} IS NOT NULL`;
       }
-      return [`${key} != ${count.next()}`];
+      convertSpecialFields(meta, (s as any).value, param);
+      return `${key} != ${count.next()}`;
     case 'like':
-      return [`LOWER(${key}) like '%' || LOWER(${count.next()}) || '%'`];
+      convertSpecialFields(meta, (s as any).value, param);
+      return `LOWER(${key}) like '%' || LOWER(${count.next()}) || '%'`;
+    case 'startsWith':
+      convertSpecialFields(meta, (s as any).value, param);
+      return `LOWER(${key}) like LOWER(${count.next()}) || '%'`;
+    case 'endsWith':
+      convertSpecialFields(meta, (s as any).value, param);
+      return `LOWER(${key}) like '%' || LOWER(${count.next()})`;
     case 'smallerThan':
-      return [`${key} < ${count.next()}`];
+      convertSpecialFields(meta, (s as any).value, param);
+      return `${key} < ${count.next()}`;
     case 'greaterThan':
-      return [`${key} > ${count.next()}`];
+      convertSpecialFields(meta, (s as any).value, param);
+      return `${key} > ${count.next()}`;
+    case 'in': {
+      const vals = (s as any).value as any[];
+      vals.forEach((v) => convertSpecialFields(meta, v, param));
+      return `${key} IN (${vals.map(() => count.next()).join(', ')})`;
+    }
+    case 'notIn': {
+      const vals = (s as any).value as any[];
+      vals.forEach((v) => convertSpecialFields(meta, v, param));
+      return `${key} NOT IN (${vals.map(() => count.next()).join(', ')})`;
+    }
+    case 'between': {
+      const [min, max] = (s as any).value as [any, any];
+      convertSpecialFields(meta, min, param);
+      convertSpecialFields(meta, max, param);
+      return `${key} BETWEEN ${count.next()} AND ${count.next()}`;
+    }
+    case 'isNull':
+      return `${key} IS NULL`;
+    case 'isNotNull':
+      return `${key} IS NOT NULL`;
     default:
-      throw new Error(`Unknown mode: ${s.mode}`);
+      throw new Error(`Unknown mode: ${(s as any).mode}`);
   }
 }
 
@@ -65,20 +99,10 @@ export default function buildSearchQ<E extends CoreEntity>(
         throw new Error('Missing meta');
       }
       if (isQInterfaceSearchAdvanced(s)) {
-        const [f, skip] = aFilter(String(key), s, count);
-        filter.push(f);
-        if (!skip) {
-          convertSpecialFields(meta, s.value, param);
-        }
+        filter.push(aFilter(String(key), s, count, meta, param));
       } else if (isQInterfaceSearchAdvancedArr(s)) {
         filter.push(
-          ...s.map((e) => {
-            const [f, skip] = aFilter(String(key), e, count);
-            if (!skip) {
-              convertSpecialFields(meta, e.value, param);
-            }
-            return f;
-          }),
+          ...s.map((e) => aFilter(String(key), e, count, meta, param)),
         );
       } else if (search[key] === null) {
         filter.push(`${String(key)} IS NULL`);

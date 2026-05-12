@@ -267,6 +267,24 @@ export default class PGCon<
     return [];
   }
 
+  async countEntity<E extends IEntity>(
+    config: EntityConfig<E>,
+    search?: QInterfaceSearch<E>,
+  ): Promise<number> {
+    let searchQ = '';
+    const param: any[] = [];
+    if (search) {
+      searchQ = buildSearchQ(config, search, param, searchQ);
+    }
+    const query = await this.execScripts([
+      {
+        exec: `SELECT COUNT(*) FROM ${this.schemaName}.${config.className} ${searchQ};`,
+        param,
+      },
+    ]);
+    return parseInt(query[0]?.rows[0]?.count ?? '0', 10);
+  }
+
   async initEntity<E extends CoreEntity>(
     className: string,
     entity: E,
@@ -353,6 +371,7 @@ export default class PGCon<
       });
       await client.connect();
       this.db = client;
+      this.setConnected();
     } catch (e) {
       this.error(e);
       process.exit(3);
