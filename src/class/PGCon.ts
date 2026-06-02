@@ -105,7 +105,7 @@ export default class PGCon<
       },
     ]);
 
-    return !!result[0];
+    return (result[0]?.rowCount ?? 0) > 0;
   }
 
   async updateBulkEntity<E extends IEntity>(
@@ -238,8 +238,8 @@ export default class PGCon<
     let searchQ = '';
     const orderBy: string[] = [];
     let orderByQ = '';
-    const off = offset !== undefined ? ` OFFSET ${offset}` : '';
-    const range = limit ? ` LIMIT ${limit}${off}` : '';
+    const limitClause = limit ? ` LIMIT ${limit}` : '';
+    const range = `${limitClause}${offset !== undefined ? ` OFFSET ${offset}` : ''}`;
     const param: any[] = [];
     if (search) {
       searchQ = buildSearchQ<E>(config, search, param, searchQ);

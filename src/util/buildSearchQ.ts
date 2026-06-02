@@ -67,7 +67,13 @@ function aFilter<E extends CoreEntity>(
       return `${key} NOT IN (${vals.map(() => count.next()).join(', ')})`;
     }
     case 'between': {
-      const [min, max] = (s as any).value as [any, any];
+      const vals = (s as any).value;
+      if (!Array.isArray(vals) || vals.length !== 2) {
+        throw new Error(
+          `Unknown parameter: ${JSON.stringify(s.value)} for between`,
+        );
+      }
+      const [min, max] = vals as [number, number];
       convertSpecialFields(meta, min, param);
       convertSpecialFields(meta, max, param);
       return `${key} BETWEEN ${count.next()} AND ${count.next()}`;
