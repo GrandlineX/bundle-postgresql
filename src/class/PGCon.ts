@@ -63,7 +63,7 @@ export default class PGCon<
 
     this.db = null;
     this.printLog = printLog;
-    pg.types.setTypeParser(1114, (str) => moment.utc(str).format());
+    pg.types.setTypeParser(1114, (str) => moment.utc(str).toDate());
   }
 
   async createEntity<E extends CoreEntity>(
