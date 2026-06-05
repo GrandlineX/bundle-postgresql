@@ -18,7 +18,7 @@ import {
   RawQuery,
 } from '@grandlinex/core';
 import moment from 'moment';
-import pg, { Client, QueryResult } from 'pg';
+import pg, { Pool, QueryResult } from 'pg';
 import {
   buildSearchQ,
   mappingWithDataType,
@@ -27,7 +27,7 @@ import {
   tableToObj,
 } from '../util/index.js';
 
-type PGDBType = Client;
+type PGDBType = Pool;
 
 /**
  * PGCon is a PostgreSQL database connection implementation that extends {@link CoreDBCon} and implements {@link IDataBase}.
@@ -357,19 +357,20 @@ export default class PGCon<
     const port = store.get('DBPORT');
     const pw = store.get('POSTGRES_PASSWORD');
     const user = store.get('POSTGRES_USER');
+    const maxCon = store.get('POSTGRES_MAX_CON');
     if (!path || !port || !pw || !user) {
       this.error('NO PG CONFIG FOUND');
       return false;
     }
     let client;
     try {
-      client = new Client({
+      client = new Pool({
         user,
         host: path,
         port: Number(port),
         password: pw,
+        max: maxCon ? parseInt(maxCon, 10) : undefined,
       });
-      await client.connect();
       this.db = client;
       this.setConnected();
     } catch (e) {
