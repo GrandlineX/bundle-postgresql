@@ -64,7 +64,7 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
         param: [],
       });
     }
-    return (await db.execScripts(query)).every((e) => e !== null);
+    return (await db.runScripts(...query)).every((e) => e !== null);
   }
 
   /**
@@ -85,6 +85,6 @@ export default abstract class PGUpdate extends CoreDBUpdate<PGCon> {
       exec: `ALTER TABLE ${db.schemaName}.${tableName} DROP COLUMN ${columName};`,
       param: [],
     });
-    return (await db.execScripts(query)).every((e) => e !== null);
+    return (await db.runScripts(...query)).every((e) => e !== null);
   }
 }

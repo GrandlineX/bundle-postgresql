@@ -16,9 +16,10 @@ import {
   QInterfaceSearch,
   QueryInterface,
   RawQuery,
+  RawQueryResult,
 } from '@grandlinex/core';
 import moment from 'moment';
-import pg, { Pool, QueryResult } from 'pg';
+import pg, { Pool, QueryResult, QueryResultBase } from 'pg';
 import {
   buildSearchQ,
   mappingWithDataType,
@@ -47,8 +48,8 @@ export default class PGCon<
     C extends ICoreCache | null = any,
     X extends ICorePresenter<any> | null = any,
   >
-  extends CoreDBCon<PGDBType, QueryResult | null, K, T, P, C, X>
-  implements IDataBase<PGDBType, QueryResult | null, K, T, P, C, X>
+  extends CoreDBCon<PGDBType, QueryResult, QueryResultBase, K, T, P, C, X>
+  implements IDataBase<PGDBType, QueryResult, QueryResultBase, K, T, P, C, X>
 {
   db: PGDBType | null;
 
@@ -72,16 +73,14 @@ export default class PGCon<
   ): Promise<E> {
     const [keys, values, params] = objToTable(config, entity);
 
-    const result = await this.execScripts([
-      {
-        exec: `INSERT INTO ${this.schemaName}.${config.className}(${keys.join(
-          ', ',
-        )})
+    const result = await this.runScripts({
+      exec: `INSERT INTO ${this.schemaName}.${config.className}(${keys.join(
+        ', ',
+      )})
                        VALUES (${values.join(', ')})
                        returning e_id;`,
-        param: params,
-      },
-    ]);
+      param: params,
+    });
     if (!result[0] || !result[0].rows[0]) {
       throw this.lError('Cant create entity');
     }
@@ -96,14 +95,12 @@ export default class PGCon<
   ): Promise<boolean> {
     const [, values, params] = objToTable(config, entity, true);
     const idd = `$${values.length + 1}`;
-    const result = await this.execScripts([
-      {
-        exec: `UPDATE ${this.schemaName}.${config.className}
+    const result = await this.runScripts({
+      exec: `UPDATE ${this.schemaName}.${config.className}
                            SET ${values.join(', ')}
                            WHERE e_id = ${idd};`,
-        param: [...params, e_id],
-      },
-    ]);
+      param: [...params, e_id],
+    });
 
     return (result[0]?.rowCount ?? 0) > 0;
   }
@@ -117,16 +114,13 @@ export default class PGCon<
       return false;
     }
     const [, values, params] = objToTable(config, entity, true);
-    let idd = values.length + 1;
-    const result = await this.execScripts([
-      {
-        exec: `UPDATE ${this.schemaName}.${config.className}
+    const idd = values.length + 1;
+    const result = await this.runScripts({
+      exec: `UPDATE ${this.schemaName}.${config.className}
                            SET ${values.join(', ')}
-                           WHERE e_id  in (${e_id.map(() => `$${idd++}`).join(',')});`,
-        param: [...params, ...e_id],
-      },
-    ]);
-
+                           WHERE e_id = ANY($${idd});`,
+      param: [...params, e_id],
+    });
     return !!result[0];
   }
 
@@ -134,14 +128,12 @@ export default class PGCon<
     config: EntityConfig<E>,
     e_id: string,
   ): Promise<E | null> {
-    const query = await this.execScripts([
-      {
-        exec: `SELECT *
+    const query = await this.runScripts({
+      exec: `SELECT *
                        FROM ${this.schemaName}.${config.className}
                        WHERE e_id = $1;`,
-        param: [e_id],
-      },
-    ]);
+      param: [e_id],
+    });
 
     const res = query[0]?.rows[0];
     if (res) {
@@ -157,15 +149,12 @@ export default class PGCon<
     if (e_id.length === 0) {
       return [];
     }
-    let counter = 1;
-    const query = await this.execScripts([
-      {
-        exec: `SELECT *
+    const query = await this.runScripts({
+      exec: `SELECT *
                        FROM ${this.schemaName}.${config.className}
-                       WHERE e_id in (${e_id.map(() => `$${counter++}`).join(',')});`,
-        param: [...e_id],
-      },
-    ]);
+                       WHERE e_id = ANY($1);`,
+      param: [e_id],
+    });
 
     const res = query[0]?.rows;
     if (res) {
@@ -175,14 +164,12 @@ export default class PGCon<
   }
 
   async deleteEntityById(className: string, e_id: string): Promise<boolean> {
-    const query = await this.execScripts([
-      {
-        exec: `DELETE
+    const query = await this.runScripts({
+      exec: `DELETE
                        FROM ${this.schemaName}.${className}
                        WHERE e_id = $1;`,
-        param: [e_id],
-      },
-    ]);
+      param: [e_id],
+    });
     return query[0] !== null;
   }
 
@@ -193,15 +180,12 @@ export default class PGCon<
     if (e_id.length === 0) {
       return false;
     }
-    let counter = 1;
-    const query = await this.execScripts([
-      {
-        exec: `DELETE
+    const query = await this.runScripts({
+      exec: `DELETE
                        FROM ${this.schemaName}.${className}
-                       WHERE e_id in (${e_id.map(() => `$${counter++}`).join(',')});`,
-        param: [...e_id],
-      },
-    ]);
+                       WHERE e_id = ANY($1);`,
+      param: [e_id],
+    });
     return query[0] !== null;
   }
 
@@ -214,12 +198,10 @@ export default class PGCon<
 
     searchQ = buildSearchQ<E>(config, search, param, searchQ);
 
-    const query = await this.execScripts([
-      {
-        exec: `SELECT * FROM ${this.schemaName}.${config.className} ${searchQ};`,
-        param,
-      },
-    ]);
+    const query = await this.runScripts({
+      exec: `SELECT * FROM ${this.schemaName}.${config.className} ${searchQ};`,
+      param,
+    });
 
     const res = query[0]?.rows[0];
     if (res) {
@@ -250,15 +232,13 @@ export default class PGCon<
       });
       orderByQ = `ORDER BY ${orderBy.join(',\n')}`;
     }
-    const query = await this.execScripts([
-      {
-        exec: `SELECT * FROM ${this.schemaName}.${config.className} 
+    const query = await this.runScripts({
+      exec: `SELECT * FROM ${this.schemaName}.${config.className} 
                             ${searchQ}
                             ${orderByQ}
                             ${range};`,
-        param,
-      },
-    ]);
+      param,
+    });
 
     const res = query[0]?.rows;
     if (res) {
@@ -276,12 +256,10 @@ export default class PGCon<
     if (search) {
       searchQ = buildSearchQ(config, search, param, searchQ);
     }
-    const query = await this.execScripts([
-      {
-        exec: `SELECT COUNT(*) FROM ${this.schemaName}.${config.className} ${searchQ};`,
-        param,
-      },
-    ]);
+    const query = await this.runScripts({
+      exec: `SELECT COUNT(*) FROM ${this.schemaName}.${config.className} ${searchQ};`,
+      param,
+    });
     return parseInt(query[0]?.rows[0]?.count ?? '0', 10);
   }
 
@@ -289,15 +267,13 @@ export default class PGCon<
     className: string,
     entity: E,
   ): Promise<boolean> {
-    await this.execScripts([
-      {
-        exec: `CREATE TABLE ${this.schemaName}.${className}
+    await this.runScripts({
+      exec: `CREATE TABLE ${this.schemaName}.${className}
                        (
                            ${this.transformEntityKeys<E>(entity)}
                        );`,
-        param: [],
-      },
-    ]);
+      param: [],
+    });
     return true;
   }
 
@@ -330,14 +306,12 @@ export default class PGCon<
 
   async removeConfig(key: string): Promise<void> {
     try {
-      const query = await this.execScripts([
-        {
-          exec: `DELETE
+      const query = await this.runScripts({
+        exec: `DELETE
                            FROM ${this.schemaName}.config
                            WHERE c_key = $1;`,
-          param: [key],
-        },
-      ]);
+        param: [key],
+      });
       this.log(query);
       if (query.length !== 1) {
         this.error('invalid result');
@@ -352,7 +326,7 @@ export default class PGCon<
   }
 
   async connect(): Promise<boolean> {
-    const store = this.getKernel().getConfigStore();
+    const store = this.getConfigStore();
     const path = store.get('DBPATH');
     const port = store.get('DBPORT');
     const pw = store.get('POSTGRES_PASSWORD');
@@ -390,7 +364,7 @@ export default class PGCon<
     }
     if (query.rows[0].count === '0') {
       this.log('CREATENEW');
-      await this.execScripts([
+      await this.runScripts(
         { exec: `CREATE SCHEMA ${this.schemaName};`, param: [] },
         {
           exec: `CREATE TABLE ${this.schemaName}.config
@@ -406,7 +380,7 @@ export default class PGCon<
                            VALUES ('dbversion', '${this.dbVersion}');`,
           param: [],
         },
-      ]);
+      );
       this.setNew(true);
       return true;
     }
@@ -418,27 +392,23 @@ export default class PGCon<
   }
 
   async configExist(key: string): Promise<boolean> {
-    const query = await this.execScripts([
-      {
-        exec: `SELECT *
+    const query = await this.runScripts({
+      exec: `SELECT *
                        FROM ${this.schemaName}.config
                        WHERE c_key = '${key}'`,
-        param: [],
-      },
-    ]);
+      param: [],
+    });
     return query.length === 1 && query[0]?.rows.length === 1;
   }
 
   async setConfig(key: string, value: string): Promise<boolean> {
-    const query = await this.execScripts([
-      {
-        exec: `INSERT INTO ${this.schemaName}.config (c_key, c_value)
+    const query = await this.runScripts({
+      exec: `INSERT INTO ${this.schemaName}.config (c_key, c_value)
                        VALUES ('${key}', '${value}')
                ON CONFLICT (c_key) DO UPDATE
                SET c_value = excluded.c_value;`,
-        param: [],
-      },
-    ]);
+      param: [],
+    });
     if (query[0] === null) {
       return false;
     }
@@ -446,40 +416,53 @@ export default class PGCon<
   }
 
   async getConfig(key: string): Promise<ConfigType | undefined> {
-    const query = await this.execScripts([
-      {
-        exec: `SELECT *
+    const query = await this.queryScript<ConfigType>({
+      exec: `SELECT *
                        FROM ${this.schemaName}.config
                        WHERE c_key = '${key}'`,
-        param: [],
-      },
-    ]);
-    return query.length === 1 &&
-      query[0]?.rows.length === 1 &&
-      query[0].rows[0] !== null
-      ? query[0].rows[0]
+      param: [],
+    });
+    return query.rows.length === 1 && query.rows[0] !== null
+      ? query.rows[0]
       : undefined;
   }
 
-  async execScripts(list: RawQuery[]): Promise<(QueryResult | null)[]> {
-    const output: (QueryResult | null)[] = [];
+  async runScripts(...list: RawQuery[]): Promise<QueryResult[]> {
+    const output: QueryResult[] = [];
     try {
       for (const el of list) {
         if (this.printLog) {
           this.verbose(el.exec, el.param);
         }
-        const res = await this.db?.query(el.exec, el.param);
-        if (res) {
-          output.push(res);
-        } else {
-          output.push(null);
-        }
+        output.push(await this.db!.query(el.exec, el.param));
       }
       return output;
     } catch (e) {
       this.error(e);
       return [];
     }
+  }
+
+  async queryScript<E>(
+    query: RawQuery,
+  ): Promise<RawQueryResult<E, QueryResultBase>> {
+    if (!query.exec) {
+      this.warn('Emtpy Query');
+      return {
+        rows: [],
+        meta: {
+          command: '',
+          rowCount: null,
+          oid: 0,
+          fields: [],
+        },
+      };
+    }
+    const { rows, ...meta } = await this.db!.query(query.exec, query.param);
+    return {
+      rows,
+      meta,
+    };
   }
 
   async disconnect(): Promise<boolean> {
