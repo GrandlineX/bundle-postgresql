@@ -1,6 +1,6 @@
 {
   "name": "@grandlinex/bundle-postgresql",
-  "version": "3.0.0-alpha.2",
+  "version": "3.0.0-alpha.3",
   "description": "",
   "type": "module",
   "exports": {
@@ -43,12 +43,12 @@
   },
   "license": "BSD-3-Clause",
   "dependencies": {
-    "pg": "8.22.0",
+    "pg": "8.23.0",
     "moment": "2.30.1",
-    "@types/pg": "8.20.4"
+    "@types/pg": "8.21.0"
   },
   "peerDependencies": {
-    "@grandlinex/core": "3.0.0-alpha.2"
+    "@grandlinex/core": "3.0.0-alpha.3"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",
