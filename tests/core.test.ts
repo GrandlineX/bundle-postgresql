@@ -1,4 +1,5 @@
-import {CoreModule, JestLib, setupDevKernel, TestContext, TestKernel,} from '@grandlinex/core';
+import {CoreModule} from '@grandlinex/core';
+import { TestLib, setupDevKernel, TestContext, TestKernel,} from '@grandlinex/core/dev';
 import { PGCon } from '../src/index.js';
 
 const appName = 'TestKernel';
@@ -18,9 +19,8 @@ setupDevKernel(kernel, (mod) => {
 });
 
 kernel.setBaseModule(new CoreModule(kernel,(mod)=> new PGCon(mod,"0")))
- jest.setTimeout(15000);
- JestLib.jestStart();
- JestLib.jestCore();
- JestLib.jestDb();
- JestLib.jestEnd();
- JestLib.jestOrm();
+TestLib.testStart();
+TestLib.testCore();
+TestLib.testDb();
+TestLib.testEnd();
+TestLib.testOrm();

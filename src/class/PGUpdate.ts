@@ -1,4 +1,4 @@
-import { CoreDBUpdate, RawQuery, XUtil } from '@grandlinex/core';
+import { CoreDBUpdate, type RawQuery, XUtil } from '@grandlinex/core';
 import PGCon from './PGCon.js';
 
 /**
