@@ -1,6 +1,6 @@
 {
   "name": "@grandlinex/bundle-postgresql",
-  "version": "3.0.0-alpha.6",
+  "version": "3.0.0-alpha.9",
   "description": "",
   "type": "module",
   "exports": {
@@ -46,7 +46,7 @@
     "@types/pg": "8.21.0"
   },
   "peerDependencies": {
-    "@grandlinex/core": "3.0.0-alpha.6"
+    "@grandlinex/core": "3.0.0-alpha.9"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
